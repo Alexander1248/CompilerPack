@@ -59,6 +59,7 @@ public class TSLTools {
             System.out.println("Enter values: ");
             Locale.setDefault(Locale.ENGLISH);
             Scanner scanner = new Scanner(System.in);
+
             float[] input = new float[load.ioIndexes.length];
             for (int i = 0; i < input.length; i++) input[i] = scanner.nextFloat();
             System.out.println("Running...");

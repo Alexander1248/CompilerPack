@@ -5,7 +5,6 @@ import ru.alexander.compilers.tsl.data.SyntaxTree;
 import ru.alexander.compilers.tsl.data.TSCode;
 import ru.alexander.compilers.tsl.data.codetypes.Function;
 import ru.alexander.compilers.tsl.data.tokens.Token;
-import ru.ingarion.compilers.tsl.data.*;
 import ru.alexander.compilers.tsl.data.codetypes.Variable;
 import ru.alexander.compilers.tsl.data.tokens.TokenType;
 import ru.alexander.compilers.tsl.exception.CompilationException;
@@ -38,8 +37,18 @@ public class TSLCompiler {
                         if (!function.input[i].equals(",")) {
                             int finalI = i;
                             if (variables.stream().noneMatch(v -> v.cipher.equals(function.input[finalI]))) {
-                                Variable variable = new Variable(function.input[i]);
-                                variables.add(variable);
+                                int oBrI = function.input[i].indexOf("[");
+                                int cBrI = function.input[i].indexOf("]");
+                                if (oBrI != -1) {
+                                    if (oBrI < cBrI) {
+                                        opcode.add(0, "arr " + function.input[i].substring(0, oBrI) + " " + function.input[i].substring(oBrI + 1, cBrI));
+                                        function.input[i] = function.input[i].substring(0, oBrI);
+                                    } else throw new CompilationException(-1, "incorrect variable definition");
+                                }
+                                else {
+                                    Variable variable = new Variable(function.input[i]);
+                                    variables.add(variable);
+                                }
                             }
                         }
                     }
@@ -51,7 +60,7 @@ public class TSLCompiler {
                     System.out.println("Variable count: " + variables.size());
                     System.out.println("Compression rate: " + compressionRate + " %");
 
-                    List<Integer> names = new ArrayList<>();
+                    List<Variable> inputRegister = new ArrayList<>();
                     for (int i = 0; i < function.input.length; i++) {
                         if (!function.input[i].equals(",")) {
                             int finalI = i;
@@ -60,16 +69,11 @@ public class TSLCompiler {
                                 variable = new Variable(function.input[i]);
                                 variables.add(variable);
                             }
-
-                            switch (variable.cipher) {
-                                case "r" -> names.add(0);
-                                case "g" -> names.add(1);
-                                case "b" -> names.add(2);
-
-                                default -> throw new CompilationException(-1, "function don't support this variable");
+                            else {
+                                variable.creationCall = -1;
+                                variable.lastCall = Integer.MAX_VALUE;
                             }
-                            variable.creationCall = -1;
-                            variable.lastCall = Integer.MAX_VALUE;
+                            inputRegister.add(variable);
                         }
                     }
 
@@ -80,20 +84,9 @@ public class TSLCompiler {
                     System.out.println("Script size: " + ts.script.length);
                     System.out.println();
 
-                    ts.ioNames = new int[names.size()];
-                    ts.ioIndexes = new int[names.size()];
-                    for (int i = 0; i < names.size(); i++) {
-                        ts.ioNames[i] = names.get(i);
-                        Variable variable;
-                        switch (names.get(i)) {
-                            case 0 -> variable = variables.stream().filter(v -> v.cipher.equals("r")).findAny().get();
-                            case 1 -> variable = variables.stream().filter(v -> v.cipher.equals("g")).findAny().get();
-                            case 2 -> variable = variables.stream().filter(v -> v.cipher.equals("b")).findAny().get();
-
-                            default -> throw new CompilationException(-1, "function don't support this variable");
-                        }
-                        ts.ioIndexes[i] = variable.layerIndex;
-                    }
+                    ts.ioIndexes = new int[inputRegister.size()];
+                    for (int i = 0; i < inputRegister.size(); i++)
+                        ts.ioIndexes[i] = inputRegister.get(i).layerIndex;
 
                     scripts.add(ts);
                 }

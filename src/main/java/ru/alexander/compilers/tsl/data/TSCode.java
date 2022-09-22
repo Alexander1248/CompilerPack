@@ -6,7 +6,6 @@ public class TSCode {
     public int varBuffSize;
     public float[] script;
 
-    public int[] ioNames;
     public int[] ioIndexes;
 
 }
