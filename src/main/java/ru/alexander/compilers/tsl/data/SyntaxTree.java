@@ -2,7 +2,7 @@ package ru.alexander.compilers.tsl.data;
 
 import org.jetbrains.annotations.NotNull;
 import ru.alexander.compilers.tsl.data.tokens.Token;
-import ru.alexander.compilers.tsl.TSLCompiler;
+import ru.alexander.compilers.tsl.compilers.AetherTSL;
 import ru.alexander.compilers.tsl.data.tokens.TokenType;
 
 import java.util.List;
@@ -110,7 +110,7 @@ public class SyntaxTree {
             } else {
                 Token var;
                 if (token.type != TokenType.Variable)
-                    var = TSLCompiler.generateVariable(token.line);
+                    var = AetherTSL.generateVariable(token.line);
                 else var = token;
 
                 switch (token.token) {
