@@ -41,14 +41,30 @@ public class TSLTools {
         }
     }
 
-    public static boolean compileWithTSLAssembler(File file) {
+    public static boolean compileWithAssembler(File file) {
         try {
             FileInputStream reader = new FileInputStream(file);
-            String[] code = new String(reader.readAllBytes()).split("\r\n");
+            String code = new String(reader.readAllBytes());
 
             reader.close();
-            TSCode compile = TSLAssembler.builder(new ArrayList<>(Arrays.asList(code)));
+            TSLAssembler assembler = new TSLAssembler();
+            TSCode compile = assembler.compile(code);
             save(compile, file);
+            return true;
+        } catch (IOException ignored) {
+            System.out.println("File not found!");
+            return false;
+        }
+    }
+    public static boolean compileWithAether(File file, boolean printCompiledScript) {
+        try {
+            FileInputStream reader = new FileInputStream(file);
+            String code = new String(reader.readAllBytes());
+
+            reader.close();
+            AetherTSL assembler = new AetherTSL(printCompiledScript);
+            TSCode[] compile = assembler.compile(code);
+            for (int i = 0; i < compile.length; i++) save(compile[i], file);
             return true;
         } catch (IOException ignored) {
             System.out.println("File not found!");
@@ -75,8 +91,10 @@ public class TSLTools {
         }
         else System.out.println("File not found!");
     }
-    public static void testCode(TSCode code, int @NotNull [] in, int[] out) {
-        TSLVirtualMachine vm = new TSLVirtualMachine(code);
+    public static void testAssemblerCode(String code, int @NotNull [] in, int[] out) {
+        TSLAssembler assembler = new TSLAssembler();
+        TSCode ts = assembler.compile(code);
+        TSLVirtualMachine vm = new TSLVirtualMachine(ts);
         Scanner scanner = new Scanner(System.in);
         Locale.setDefault(Locale.ENGLISH);
 
@@ -89,6 +107,26 @@ public class TSLTools {
 
         for (int i = 0; i < out.length; i++)
             System.out.print(vm.getVariable(out[i]) + " ");
+    }
+    public static void testAetherCode(String code, boolean printCompiledScript) {
+        AetherTSL compiler = new AetherTSL(printCompiledScript);
+        TSCode[] ts = compiler.compile(code);
+        for (int i = 0; i < ts.length; i++) {
+            TSLVirtualMachine vm = new TSLVirtualMachine(ts[i]);
+            Scanner scanner = new Scanner(System.in);
+            Locale.setDefault(Locale.ENGLISH);
+
+            System.out.println("Enter values: ");
+            for (int j = 0; j < ts[i].ioIndexes.length; j++)
+                vm.setVariable( ts[i].ioIndexes[j], scanner.nextFloat());
+            System.out.println("Running...");
+
+            vm.runCode();
+
+            for (int j = 0; j < ts[i].ioIndexes.length; j++)
+                System.out.print(vm.getVariable(ts[i].ioIndexes[j]) + " ");
+        }
+
     }
 
 }

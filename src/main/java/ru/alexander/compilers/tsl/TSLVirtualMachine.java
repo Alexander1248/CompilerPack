@@ -25,7 +25,7 @@ public class TSLVirtualMachine {
 
     public static final int mathShift = 9;
     public static final int vecMathShift = mathShift + 17;
-    public static final int funcShift = vecMathShift + 6;
+    public static final int funcShift = vecMathShift + 9;
     private int runner(float @NotNull [] code, int pointer) {
         while (pointer < code.length) {
             switch ((int) code[pointer]) {
@@ -57,33 +57,20 @@ public class TSLVirtualMachine {
                 } //set
                 case 2 -> {
                     int i = (int) (code[pointer + 1] + variables[(int) code[pointer + 2]]);
+                    int from = (int) (code[pointer + 3]);
                     if (i >= variables.length) {
                         i -= variables.length;
                         if (i >= vector2Var.length) {
                             i -= vector2Var.length;
                             if (i >= vector3Var.length) throw new VMException("TSL", "memory heap overflow");
-                            else {
-                                float x = code[pointer + 3];
-                                float y = code[pointer + 4];
-                                float z = code[pointer + 5];
-                                vector3Var[i] = new Vector3(x, y, z);
-                                pointer += 6;
-                            }
-                        } else {
-                            float x = code[pointer + 3];
-                            float y = code[pointer + 4];
-                            vector2Var[i] = new Vector2(x, y);
-                            pointer += 5;
-                        }
-                    } else {
-                        float var = code[pointer + 3];
-                        variables[i] = var;
-                        pointer += 4;
-                    }
+                            else vector3Var[i] = vector3Var[from];
+                        } else vector2Var[i] = vector2Var[from];
+                    } else variables[i] = variables[from];
+                    pointer += 4;
                 } //seta
                 case 3 -> {
-                    int op = (int) code[pointer + 1];
-                    int np = (int) code[pointer + 2];
+                    int np = (int) code[pointer + 1];
+                    int op = (int) code[pointer + 2];
                     if (op >= variables.length) {
                         op -= variables.length;
                         if (op >= vector2Var.length) {
@@ -294,6 +281,7 @@ public class TSLVirtualMachine {
                     int b = (int) code[pointer + 2];
                     int c = (int) code[pointer + 3];
                     if (a >= variables.length) {
+                        int d = c;
                         a -= variables.length;
                         b -= variables.length;
                         c -= variables.length;
@@ -311,9 +299,9 @@ public class TSLVirtualMachine {
                                 } catch (Exception e) {
                                     try {
                                         vector3Var[a] = new Vector3(
-                                                vector3Var[b].x * variables[c],
-                                                vector3Var[b].y * variables[c],
-                                                vector3Var[b].z * variables[c]);
+                                                vector3Var[b].x * variables[d],
+                                                vector3Var[b].y * variables[d],
+                                                vector3Var[b].z * variables[d]);
                                     } catch (Exception ex) {
                                         throw new VMException("TSL", "error in vec3 math");
                                     }
@@ -327,8 +315,8 @@ public class TSLVirtualMachine {
                             } catch (Exception e) {
                                 try {
                                     vector2Var[a] = new Vector2(
-                                            vector2Var[b].x * variables[c],
-                                            vector2Var[b].y * variables[c]);
+                                            vector2Var[b].x * variables[d],
+                                            vector2Var[b].y * variables[d]);
                                 } catch (Exception ex) {
                                     throw new VMException("TSL", "error in vec2 math");
                                 }
@@ -774,17 +762,19 @@ public class TSLVirtualMachine {
 
                         if (Math.signum(prod1) == Math.signum(prod2) || (prod1 == 0) || (prod2 == 0))
                             vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(0, 0);
+                        else {
 
-                        prod1 = cut2.y * d1.x - cut2.x * d1.y;
-                        prod2 = cut2.y * d2.x - cut2.x * d2.y;
+                            d2 = new Vector2(p12.x - p21.x, p12.y - p21.y);
 
-                        if (Math.signum(prod1) == Math.signum(prod2) || (prod1 == 0) || (prod2 == 0))
-                            vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(0, 0);
+                            prod1 = cut2.y * d1.x - cut2.x * d1.y;
+                            prod2 = cut2.x * d2.y - cut2.y * d2.x;
 
-
-                        vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(
-                                p11.x + cut1.x * Math.abs(prod1) / Math.abs(prod2 - prod1),
-                                p11.y + cut1.y * Math.abs(prod1) / Math.abs(prod2 - prod1));
+                            if (Math.signum(prod1) == Math.signum(prod2) || (prod1 == 0) || (prod2 == 0))
+                                vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(0, 0);
+                            else vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(
+                                    p11.x + cut1.x * Math.abs(prod1) / Math.abs(prod2 - prod1),
+                                    p11.y + cut1.y * Math.abs(prod1) / Math.abs(prod2 - prod1));
+                        }
                     } catch (Exception e) {
                         throw new VMException("TSL", "Error in vec2 math");
                     }
@@ -795,9 +785,9 @@ public class TSLVirtualMachine {
                         Vector2 in = vector2Var[(int) code[pointer + 2] - variables.length];
                         Vector2 n = vector2Var[(int) code[pointer + 3] - variables.length];
 
-                        float nl = (float) (2 * (in.x * n.y + in.y * n.x) / Math.sqrt(n.x * n.x + n.y * n.y));
+                        float nl = (float) (2 * (in.x * n.x + in.y * n.y) / Math.sqrt(n.x * n.x + n.y * n.y));
                         vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(
-                                in.x - n.y * nl,in.y - n.x * nl
+                                in.x - n.x * nl,in.y - n.y * nl
                         );
                     } catch (Exception e) {
                         try {
@@ -815,6 +805,24 @@ public class TSLVirtualMachine {
                     pointer += 6;
                 } //vrfl
                 case vecMathShift + 6 -> {
+                    int out = (int) code[pointer + 1];
+                    try {
+                        Vector2 pt = vector2Var[(int) code[pointer + 2] - variables.length];
+                        Vector2 a = vector2Var[(int) code[pointer + 3] - variables.length];
+                        Vector2 b = vector2Var[(int) code[pointer + 4] - variables.length];
+
+                        float aptDst = (float) Math.sqrt(Math.pow(pt.x - a.x, 2) + Math.pow(pt.y - a.y, 2));
+                        float bptDst = (float) Math.sqrt(Math.pow(pt.x - b.x, 2) + Math.pow(pt.y - b.y, 2));
+                        float abDst = (float) Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+
+                        if ((aptDst + bptDst - abDst) < 0.0001) variables[out] = 1;
+                        else variables[out] = 0;
+                    } catch (Exception e) {
+                        throw new VMException("TSL", "Point in cut testing error");
+                    }
+                    pointer += 5;
+                } //pinc
+                case vecMathShift + 7 -> {
                     int a = (int) code[pointer + 1] - variables.length;
                     int b = (int) code[pointer + 2];
                     int c = (int) code[pointer + 3];
@@ -828,6 +836,45 @@ public class TSLVirtualMachine {
                     }
                     pointer += 4;
                 } //cray
+                case vecMathShift + 8 -> {
+                    try {
+                        Vector2 a = vector2Var[(int) code[pointer + 2] - variables.length];
+                        Vector2 b = vector2Var[(int) code[pointer + 3] - variables.length];
+                        vector2Var[(int) code[pointer + 1] - variables.length] = new Vector2(b.y - a.y, a.x - b.x);
+                    } catch (Exception e) {
+                        throw new VMException("TSL", "Error in normal calculating");
+                    }
+                    pointer += 4;
+                } //getn
+                case vecMathShift + 9 -> {
+                    int out = (int) code[pointer + 1] - variables.length;
+                    if (out < vector2Var.length) {
+                        try {
+                            Vector2 a = vector2Var[(int) code[pointer + 2] - variables.length];
+                            Vector2 b = vector2Var[(int) code[pointer + 3] - variables.length];
+                            float t = variables[(int) code[pointer + 4]];
+
+                            vector2Var[out] = new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+                        } catch (Exception e) {
+                            throw new VMException("TSL", "Vec2 lerp error");
+                        }
+                    }
+                    else {
+                        try {
+                            Vector3 a = vector3Var[(int) code[pointer + 2] - variables.length - vector2Var.length];
+                            Vector3 b = vector3Var[(int) code[pointer + 3] - variables.length - vector2Var.length];
+                            float t = variables[(int) code[pointer + 4]];
+
+                            vector3Var[out - vector2Var.length] = new Vector3(
+                                    a.x + (b.x - a.x) * t,
+                                    a.y + (b.y - a.y) * t,
+                                    a.z + (b.z - a.z) * t);
+                        } catch (Exception e) {
+                            throw new VMException("TSL", "Vec3 lerp error");
+                        }
+                    }
+                    pointer += 5;
+                } //lerp
 
                 case funcShift + 1 -> {
                     return pointer;

@@ -7,9 +7,18 @@ import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
-        String str = new Scanner(System.in).next();
-
-        if (TSLTools.compileWithTSLAssembler(new File(str + ".txt")))
-            TSLTools.runCompiledFile(new File(str + "_0.tsl"), new int[]{}, new int[]{4});
+        String code = """
+                def vtex(var n) {
+                    curr = 1;
+                    var prev = 1;
+                    
+                    for (var i = 0; i < n; i++) {
+                        var buff = curr + prev;
+                        prev = curr;
+                        curr = buff;
+                    }
+                }
+                """;
+        TSLTools.testAetherCode(code, true);
     }
 }

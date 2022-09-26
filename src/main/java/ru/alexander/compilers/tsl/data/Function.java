@@ -1,10 +1,11 @@
-package ru.alexander.compilers.tsl.data.codetypes;
+package ru.alexander.compilers.tsl.data;
 
 import java.util.Arrays;
 
 public class Function {
     public String name;
-    public String[] input;
+    public String[] inputNames;
+    public String[] inputTypes;
 
     public int codeStart;
     public int codeEnd;
@@ -13,7 +14,7 @@ public class Function {
     public String toString() {
         return "Function{" +
                 "name='" + name + '\'' +
-                ", input=" + (input != null ? Arrays.toString(input) : "null") +
+                ", input=" + (inputNames != null ? Arrays.toString(inputNames) : "null") +
                 '}';
     }
 }
