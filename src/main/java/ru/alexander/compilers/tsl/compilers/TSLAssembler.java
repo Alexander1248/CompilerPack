@@ -55,43 +55,48 @@ public class TSLAssembler implements Compiler<TSCode> {
                     machineCode.add(2f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1] + 0, j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
-                    for (int i = 3; i < sgm.length; i++)
-                        useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[i], j);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[3], j);
+                }
+                case "geta" -> {
+                    machineCode.add(3f);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2] + 0, j);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[3], j);
                 }
                 case "mov" -> {
-                    machineCode.add(3f);
+                    machineCode.add(4f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
                 }
 
                 case "svx" -> {
-                    machineCode.add(4f);
-                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
-                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
-                }
-                case "svy" -> {
                     machineCode.add(5f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
                 }
-                case "svz" -> {
+                case "svy" -> {
                     machineCode.add(6f);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
+                }
+                case "svz" -> {
+                    machineCode.add(7f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
                 }
 
                 case "gvx" -> {
-                    machineCode.add(7f);
-                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
-                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
-                }
-                case "gvy" -> {
                     machineCode.add(8f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
                 }
-                case "gvz" -> {
+                case "gvy" -> {
                     machineCode.add(9f);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
+                    useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
+                }
+                case "gvz" -> {
+                    machineCode.add(10f);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[2], j);
                 }

@@ -71,17 +71,30 @@ public class TSLTools {
             return false;
         }
     }
+    public static boolean compileWithAether(File file) {
+        return compileWithAether(file, false);
+    }
 
     public static void runCompiledFile(File file, int[] in,  int[] out) {
-        TSCode load = load(file);
-        if (load != null) {
-            TSLVirtualMachine vm = new TSLVirtualMachine(load);
+        TSCode ts = load(file);
+        if (ts != null) {
+            TSLVirtualMachine vm = new TSLVirtualMachine(ts);
             Scanner scanner = new Scanner(System.in);
             Locale.setDefault(Locale.ENGLISH);
 
             System.out.println("Enter values: ");
-            for (int i = 0; i < in.length; i++)
-                vm.setVariable(in[i], scanner.nextFloat());
+            for (int j = 0; j < in.length; j++) {
+                if (in[j] < ts.varBuffSize)
+                    vm.setVariable(in[j], scanner.nextFloat());
+                else {
+                    if (in[j] - ts.varBuffSize < ts.vec2BuffSize)
+                        vm.setVariable(in[j],
+                                new TSLVirtualMachine.Vector2(scanner.nextFloat(), scanner.nextFloat()));
+                    else
+                        vm.setVariable(in[j],
+                                new TSLVirtualMachine.Vector3(scanner.nextFloat(), scanner.nextFloat(), scanner.nextFloat()));
+                }
+            }
             System.out.println("Running...");
 
             vm.runCode();
@@ -99,8 +112,18 @@ public class TSLTools {
         Locale.setDefault(Locale.ENGLISH);
 
         System.out.println("Enter values: ");
-        for (int i = 0; i < in.length; i++)
-            vm.setVariable(in[i], scanner.nextFloat());
+        for (int j = 0; j < in.length; j++) {
+            if (in[j] < ts.varBuffSize)
+                vm.setVariable(in[j], scanner.nextFloat());
+            else {
+                if (in[j] - ts.varBuffSize < ts.vec2BuffSize)
+                    vm.setVariable(in[j],
+                            new TSLVirtualMachine.Vector2(scanner.nextFloat(), scanner.nextFloat()));
+                else
+                    vm.setVariable(in[j],
+                            new TSLVirtualMachine.Vector3(scanner.nextFloat(), scanner.nextFloat(), scanner.nextFloat()));
+            }
+        }
         System.out.println("Running...");
 
         vm.runCode();
@@ -117,8 +140,18 @@ public class TSLTools {
             Locale.setDefault(Locale.ENGLISH);
 
             System.out.println("Enter values: ");
-            for (int j = 0; j < ts[i].ioIndexes.length; j++)
-                vm.setVariable( ts[i].ioIndexes[j], scanner.nextFloat());
+            for (int j = 0; j < ts[i].ioIndexes.length; j++) {
+                if (ts[i].ioIndexes[j] < ts[i].varBuffSize)
+                    vm.setVariable(ts[i].ioIndexes[j], scanner.nextFloat());
+                else {
+                    if (ts[i].ioIndexes[j] - ts[i].varBuffSize < ts[i].vec2BuffSize)
+                        vm.setVariable(ts[i].ioIndexes[j],
+                                new TSLVirtualMachine.Vector2(scanner.nextFloat(), scanner.nextFloat()));
+                    else
+                        vm.setVariable(ts[i].ioIndexes[j],
+                                new TSLVirtualMachine.Vector3(scanner.nextFloat(), scanner.nextFloat(), scanner.nextFloat()));
+                }
+            }
             System.out.println("Running...");
 
             vm.runCode();
@@ -128,5 +161,7 @@ public class TSLTools {
         }
 
     }
-
+    public static void testAetherCode(String code) {
+        testAetherCode(code, false);
+    }
 }

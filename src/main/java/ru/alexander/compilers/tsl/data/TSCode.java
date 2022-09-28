@@ -9,5 +9,6 @@ public class TSCode {
     public float[] script;
 
     public int[] ioIndexes;
+    public String[] ioNames;
 
 }

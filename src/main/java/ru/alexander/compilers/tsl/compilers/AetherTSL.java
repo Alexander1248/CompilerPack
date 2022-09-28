@@ -11,6 +11,7 @@ import ru.alexander.compilers.tsl.data.tokens.TokenType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class AetherTSL implements Compiler<TSCode[]> {
     private static long numerator = 0;
@@ -57,11 +58,48 @@ public class AetherTSL implements Compiler<TSCode[]> {
 
                     StringBuilder assemblerCode = new StringBuilder();
                     for (String command : opcode) assemblerCode.append(command).append("\n");
+//                    System.out.println(assemblerCode);
+
                     TSCode compile = assembler.compile(assemblerCode.toString());
                     if (function.name.equals("vtex")) compile.modulationKey = 4738;
                     else compile.modulationKey = 11738;
-                    compile.ioIndexes = new int[function.inputNames.length];
-                    for (int i = 0; i < compile.ioIndexes.length; i++) compile.ioIndexes[i] = i;
+
+
+                    List<Integer> indexes = new ArrayList<>();
+                    List<String> names = new ArrayList<>();
+                    for (int i = 0; i < function.inputNames.length; i++) {
+                        if (function.inputNames[i].contains("[")) {
+                            int oBrI = function.inputNames[i].indexOf("[");
+                            int cBrI = function.inputNames[i].indexOf("]");
+                            if (cBrI > oBrI) {
+                                int size = Integer.parseInt(function.inputNames[i].substring(oBrI + 1, cBrI));
+                                String name = function.inputNames[i].substring(0, oBrI);
+                                for (int j = 0; j < size; j++) {
+                                    if (function.inputTypes[i].equals("vec3"))
+                                        indexes.add(i + compile.varBuffSize + compile.vec2BuffSize + j);
+                                    else if (function.inputTypes[i].equals("vec2"))
+                                        indexes.add(i + compile.varBuffSize + j);
+                                    else  indexes.add(i + j);
+                                    names.add(name + j);
+                                }
+                            }
+                            else throw new CompilationException("AetherTSL", "Incorrect array initialization", -1);
+                        }
+                        else {
+                            if (function.inputTypes[i].equals("vec3"))
+                                indexes.add(i + compile.varBuffSize + compile.vec2BuffSize);
+                            else if (function.inputTypes[i].equals("vec2"))
+                                indexes.add(i + compile.varBuffSize);
+                            else  indexes.add(i);
+                            names.add(function.inputNames[i]);
+                        }
+                    }
+                    compile.ioIndexes = new int[indexes.size()];
+                    compile.ioNames = new String[indexes.size()];
+                    for (int i = 0; i < indexes.size(); i++) {
+                        compile.ioNames[i] = names.get(i);
+                        compile.ioIndexes[i] = indexes.get(i);
+                    }
 
                     System.out.println("Assembler code compression: " + compressionRate + " %");
                     System.out.println("Float variables count: " + compile.varBuffSize);
@@ -81,7 +119,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
         return scripts.toArray(new TSCode[0]);
     }
 
-    private @NotNull List<Token> lexicalAnalyser(@NotNull String code) {
+    public static @NotNull List<Token> lexicalAnalyser(@NotNull String code) {
         int line = 0;
         String sc = code.replace("\n", " ").replace("\t", " ");
         List<Token> tokens = new ArrayList<>();
@@ -152,16 +190,23 @@ public class AetherTSL implements Compiler<TSCode[]> {
                 }
             }
         }
+        getSegmentToken(tokens, segment.toString(), line);
 
         return tokens;
     }
-    private void getSegmentToken(List<Token> tokens, @NotNull String segment, int line) {
-        switch (segment) {
+
+    private static boolean isArray = false;
+    private static void getSegmentToken(List<Token> tokens, @NotNull String segment, int line) {
+        if (isArray) {
+            tokens.get(tokens.size() - 1).token += " " + segment;
+            if (segment.contains("]")) isArray = false;
+        }
+        else switch (segment) {
             case "=", "+", "-", "*", "/", "%",
                     "+=", "-=", "*=", "/=", "%=",
                     "<", "<=", ">", ">=" -> tokens.add(new Token(segment, TokenType.Operator, line));
             case "while", "do", "for", "if", "kill", "def" -> tokens.add(new Token(segment, TokenType.ResWord, line));
-            case "sin", "cos", "tan", "pow", "sqrt", "log", "abs", "reflect", "ray", "dot", "cross", "length", "intersect", "normal", "contain", "lerp" -> tokens.add(new Token(segment, TokenType.MathFunction, line));
+            case "sin", "cos", "tan", "pow", "sqrt", "log", "abs", "reflect", "ray", "dot", "cross", "length", "intersect", "normalOf", "contain", "lerp" -> tokens.add(new Token(segment, TokenType.MathFunction, line));
             case "var", "vec2", "vec3" -> tokens.add(new Token(segment, TokenType.VariableMark, line));
             default -> {
                 if (!segment.isBlank()) {
@@ -169,7 +214,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         double v = Double.parseDouble(segment);
                         tokens.add(new Token(String.valueOf(v), TokenType.Constant, line));
                     } catch (Exception ex) {
-                        if (tokens.get(tokens.size() - 1).token.equals("."))
+                        if (tokens.size() > 0 && tokens.get(tokens.size() - 1).token.equals("."))
                             tokens.add(new Token(segment, TokenType.ResWord, line));
                         else {
                             if (segment.endsWith("++") || segment.endsWith("--")) {
@@ -177,7 +222,10 @@ public class AetherTSL implements Compiler<TSCode[]> {
                                 tokens.add(new Token( segment.charAt(segment.length() - 1) + "=", TokenType.Operator, line));
                                 tokens.add(new Token("1.0", TokenType.Constant, line));
                             }
-                            else tokens.add(new Token(segment, TokenType.Variable, line));
+                            else {
+                                if (segment.contains("[") && !segment.contains("]")) isArray = true;
+                                tokens.add(new Token(segment, TokenType.Variable, line));
+                            }
                         }
                     }
                 }
@@ -374,7 +422,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         output.add(output.size() + s, buffer.get(i - 3));
                         output.add(output.size() + s, buffer.get(i - 2));
                     }
-                    output.add(output.size() + s, buffer.get(i - 1));
+                    output.add(output.size() + s, new Token(buffer.get(i - 1).token, buffer.get(i - 1).type, buffer.get(i - 1).line));
                     output.add(output.size() + s, new Token(buffer.get(i).token.replace("=", ""), TokenType.Operator, buffer.get(i).line));
                     output.add(output.size() + s, new Token("(", TokenType.Bracket, buffer.get(i).line));
                     output.add(output.size() + s, new Token(")", TokenType.Bracket, buffer.get(i).line));
@@ -463,7 +511,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
 
                                 SyntaxTree tree = new SyntaxTree();
                                 tree.buildTree(line.subList(j + 1, line.size()));
-                                tree.generateOpcode(output, s);
+                                tree.generateOpcode(varName, varType, output, s);
 
                                 if (j >= 2 && line.get(j - 2).token.equals(".")) {
                                     editVariable(line, varName, varType, j - 3);
@@ -483,25 +531,32 @@ public class AetherTSL implements Compiler<TSCode[]> {
                             if (oBrI != -1 && oBrI < cBrI) {
                                 String name = line.get(j - 1).token.substring(0, oBrI);
                                 String index = line.get(j - 1).token.substring(oBrI + 1, cBrI);
+                                List<Token> indexTokens = lexicalAnalyser(index);
                                 for (int k = 0; k < varName.size(); k++)
                                     if (varName.get(k).equals(name)) {
                                         name = varType.get(k) + "_" + name;
                                         break;
                                     }
-                                for (int k = 0; k < varName.size(); k++)
-                                    if (varName.get(k).equals(index)) {
-                                        index = varType.get(k) + "_" + index;
-                                        break;
+                                for (Token indexToken : indexTokens)
+                                    if (indexToken.type == TokenType.Variable) {
+                                        for (int k = 0; k < varName.size(); k++)
+                                            if (varName.get(k).equals(indexToken.token)) {
+                                                indexToken.token = varType.get(k) + "_" + indexToken.token;
+                                                break;
+                                            }
                                     }
+                                SyntaxTree tree = new SyntaxTree();
+                                tree.buildTree(indexTokens);
+                                tree.generateOpcode(varName, varType, output, s);
 
-                                command = "seta " + name + " " + index + " ";
+                                command = "seta " + name + " " + tree.token.token + " ";
                                 for (int k = j + 1; k < line.size(); k++)
                                     if (line.get(k).type == TokenType.Variable)
                                         editVariable(line, varName, varType, k);
 
-                                SyntaxTree tree = new SyntaxTree();
+                                tree = new SyntaxTree();
                                 tree.buildTree(line.subList(j + 1, line.size()));
-                                tree.generateOpcode(output, s);
+                                tree.generateOpcode(varName, varType, output, s);
                                 output.add(output.size() + s, command + tree.token.token);
 
                             }
@@ -516,7 +571,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         SyntaxTree tree = new SyntaxTree();
                         int start = output.size();
                         tree.buildTree(line.subList(j + 2, line.size() - 1));
-                        tree.generateOpcode(output, s);
+                        tree.generateOpcode(varName, varType, output, s);
                         int end = output.size();
                         output.add(output.size() + s, "cyc " +  tree.token.token);
                         output.addAll(output.subList(start, end));
@@ -531,7 +586,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
 
                         SyntaxTree tree = new SyntaxTree();
                         tree.buildTree(line.subList(j + 2, line.size() - 1));
-                        tree.generateOpcode(output, s);
+                        tree.generateOpcode(varName, varType, output, s);
                         output.add(output.size() + s, "if " +  tree.token.token);
                     }
                     case "kill" -> {
@@ -578,8 +633,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         if (varName.get(j).equals(sgm[1])) {
                             if (varFI.get(j) != i) {
                                 i = recalculateFirstInclude(assembler, varFI, i);
-                            }
-                            else if (levelEnter != -1) {
+                            } else if (levelEnter != -1) {
                                 assembler.remove(i);
                                 assembler.add(levelEnter, line);
                                 levelEnter++;
@@ -589,7 +643,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                     }
                 }
                 case "set" -> {
-                    if (levelEnter != -1 && (sgm[1].startsWith("num_") || sgm[1].startsWith("vec2_")|| sgm[1].startsWith("vec3_"))) {
+                    if (levelEnter != -1 && (sgm[1].startsWith("num_") || sgm[1].startsWith("vec2_") || sgm[1].startsWith("vec3_"))) {
                         for (int j = 0; j < varName.size(); j++) {
                             if (varName.get(j).equals(sgm[1])) {
                                 if (varFI.get(j) + 1 != i) {
@@ -600,6 +654,41 @@ public class AetherTSL implements Compiler<TSCode[]> {
                                     levelEnter++;
                                 }
                                 break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < assembler.size(); i++) {
+            if (i < assembler.size() - 1) {
+                String[] curr = assembler.get(i).split(" ");
+                String[] next = assembler.get(i + 1).split(" ");
+                if (curr.length > 2 && next.length == curr.length && curr[1].length() == next[1].length()) {
+                    boolean eq = next[0].equals(curr[0]);
+                    for (int j = 2; j < curr.length; j++)
+                        if (!next[j].equals(curr[j])) {
+                            eq = false;
+                            break;
+                        }
+
+                    if (eq) {
+                        int delta = 0;
+                        for (int j = 0; j < curr[1].length(); j++)
+                            if (next[1].charAt(j) != curr[1].charAt(j))
+                                delta++;
+
+                        if (delta == 1) {
+                            assembler.remove(i + 1);
+                            for (int j = i + 1; j < assembler.size(); j++) {
+                                String[] s = assembler.get(j).split(" ");
+                                StringBuilder command = new StringBuilder(s[0]);
+                                for (int l = 1; l < s.length; l++) {
+                                    if (s[l].equals(next[1])) command.append(" ").append(curr[1]);
+                                    else command.append(" ").append(s[l]);
+                                }
+                                assembler.set(j, command.toString());
                             }
                         }
                     }
@@ -621,13 +710,27 @@ public class AetherTSL implements Compiler<TSCode[]> {
     }
 
     private void editVariable(List<Token> line, @NotNull List<String> varName, List<String> varType, int j) {
-        for (int k = 0; k < varName.size(); k++)
-            if (varName.get(k).equals(line.get(j).token)) {
-                if (line.get(j).token.contains("["))
-                    line.get(j).token = varType.get(k) + "_" + line.get(j).token.substring(0,  line.get(j).token.indexOf("["));
-                else line.get(j).token = varType.get(k) + "_" + line.get(j).token;
+        for (int k = 0; k < varName.size(); k++) {
+            if (line.get(j).token.contains("[")) {
+                int oBrI = line.get(j).token.indexOf("[");
+                int cBrI = line.get(j).token.indexOf("]");
+                if (oBrI < cBrI) {
+                    String name = line.get(j).token.substring(0, oBrI);
+                    String index = line.get(j).token.substring(oBrI + 1, cBrI);
+                    for (int l = 0; l < varName.size(); l++)
+                        if (index.equals(varName.get(l)))
+                            index = varType.get(l) + "_" + index;
+
+                    line.get(j).token = varType.get(k) + "_" + name + "[" + index + "]";
+                    break;
+                }
+                else throw new CompilationException("AetherTSL", "Incorrect array initialization", line.get(j).line);
+            }
+            else if (varName.get(k).equals(line.get(j).token)) {
+                line.get(j).token = varType.get(k) + "_" + line.get(j).token;
                 break;
             }
+        }
     }
 
     public static Token generateVariable(int line) {
