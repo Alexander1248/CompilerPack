@@ -60,8 +60,10 @@ public class TSLVirtualMachine {
                     int from = (int) (code[pointer + 3]);
                     if (i >= variables.length) {
                         i -= variables.length;
+                        from -= variables.length;
                         if (i >= vector2Var.length) {
                             i -= vector2Var.length;
+                            from -= vector2Var.length;
                             if (i >= vector3Var.length) throw new VMException("TSL", "memory heap overflow");
                             else vector3Var[i] = vector3Var[from];
                         } else vector2Var[i] = vector2Var[from];
@@ -73,8 +75,10 @@ public class TSLVirtualMachine {
                     int to = (int) (code[pointer + 1]);
                     if (i >= variables.length) {
                         i -= variables.length;
+                        to -= variables.length;
                         if (i >= vector2Var.length) {
                             i -= vector2Var.length;
+                            to -= vector2Var.length;
                             if (i >= vector3Var.length) throw new VMException("TSL", "memory heap overflow");
                             else vector3Var[to] = vector3Var[i];
                         } else vector2Var[to] = vector2Var[i];
@@ -86,8 +90,10 @@ public class TSLVirtualMachine {
                     int op = (int) code[pointer + 2];
                     if (op >= variables.length) {
                         op -= variables.length;
+                        np -= variables.length;
                         if (op >= vector2Var.length) {
                             op -= vector2Var.length;
+                            np -= vector2Var.length;
                             if (op >= vector3Var.length) throw new VMException("TSL", "memory heap overflow");
                             else {
                                 try {
