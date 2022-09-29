@@ -257,6 +257,7 @@ public class TSLAssembler implements Compiler<TSCode> {
                 }
 
                 case "end" -> machineCode.add((float) (TSLVirtualMachine.funcShift + 1));
+                case "else" -> machineCode.add((float) (TSLVirtualMachine.funcShift + 5));
                 case "if" -> {
                     machineCode.add((float) (TSLVirtualMachine.funcShift + 2));
                     useVar(floatVars, vec2Vars, vec3Vars, machineCode, sgm[1], j);

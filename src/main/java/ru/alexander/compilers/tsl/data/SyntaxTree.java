@@ -158,7 +158,7 @@ public class SyntaxTree {
                 }
                 else {
                     if (branches[1].token == null) {
-                        String var = "vec2_"
+                        String var = "vec2_num"
                                 + Double.doubleToLongBits(Double.parseDouble(token.token))
                                 + Double.doubleToLongBits(Double.parseDouble(branches[0].token.token));
                         lines.add(lines.size() + s, "vec2 " + var);
@@ -166,7 +166,7 @@ public class SyntaxTree {
                         token = new Token(var, TokenType.Variable, token.line);
                     }
                     else {
-                        String var = "vec3_"
+                        String var = "vec3_num"
                                 + Double.doubleToLongBits(Double.parseDouble(token.token))
                                 + Double.doubleToLongBits(Double.parseDouble(branches[0].token.token))
                                 + Double.doubleToLongBits(Double.parseDouble(branches[1].token.token));

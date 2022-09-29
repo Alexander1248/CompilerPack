@@ -903,6 +903,12 @@ public class TSLVirtualMachine {
                     if (variables[a] > 0.5) {
                         pointer = runner(code, pointer + 2);
                     }
+                    else {
+                        while (code[pointer] != funcShift + 5 && code[pointer] != funcShift + 1) pointer++;
+                        if (code[pointer] == funcShift + 5) {
+                            pointer = runner(code, pointer + 1);
+                        }
+                    }
                     pointer++;
                 } //if
                 case funcShift + 3 -> {

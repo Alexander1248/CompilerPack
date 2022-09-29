@@ -373,10 +373,24 @@ public class AetherTSL implements Compiler<TSCode[]> {
                             j++;
                             k++;
                         }
-                        buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
-                        buffer.add(buffer.size() + s, new Token("}", TokenType.Bracket, tokens.get(i + j).line));
-                        shift.add(k + 2);
-                        s -= shift.get(shift.size() - 1);
+
+                        if (!"{".equals(tokens.get(i + j + 1).token)) {
+                            j++;
+                            buffer.add(buffer.size() + s - k, new Token("{", TokenType.Bracket, tokens.get(i + j).line));
+                            while (!";".equals(tokens.get(i + j).token)) {
+                                buffer.add(buffer.size() + s - k, tokens.get(i + j ));
+                                j++;
+                            }
+                            buffer.add(buffer.size() + s - k, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            buffer.add(buffer.size() + s, new Token("}", TokenType.Bracket, tokens.get(i + j).line));
+                        }
+                        else {
+                            buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            buffer.add(buffer.size() + s, new Token("}", TokenType.Bracket, tokens.get(i + j).line));
+                            shift.add(k + 2);
+                            s -= shift.get(shift.size() - 1);
+                        }
                         i += j;
                     }
                     case "do" -> {
@@ -397,6 +411,42 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         buffer.addAll(inBr);
                         buffer.add(new Token("}", TokenType.Bracket, tokens.get(i).line));
 
+                    }
+                    case "if" -> {
+                        int j = 0;
+                        while (!")".equals(tokens.get(i + j).token)) {
+                            if (",".equals(tokens.get(i + j).token))
+                                buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            else buffer.add(buffer.size() + s, tokens.get(i + j));
+                            j++;
+                        }
+                        buffer.add(buffer.size() + s, new Token(")", TokenType.Bracket, tokens.get(i + j).line));
+                        j++;
+
+                        if (!"{".equals(tokens.get(i + j).token)) {
+                            buffer.add(buffer.size() + s, new Token("{", TokenType.Bracket, tokens.get(i + j).line));
+                            while (!";".equals(tokens.get(i + j).token)) {
+                                buffer.add(buffer.size() + s, tokens.get(i + j));
+                                j++;
+                            }
+                            buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            buffer.add(buffer.size() + s, new Token("}", TokenType.Bracket, tokens.get(i + j).line));
+                        }
+                        i += j;
+                    }
+                    case "else" -> {
+                        buffer.add(buffer.size() + s, tokens.get(i));
+                        int j = 1;
+                        if (!"{".equals(tokens.get(i + j).token)) {
+                            buffer.add(buffer.size() + s, new Token("{", TokenType.Bracket, tokens.get(i + j).line));
+                            while (!";".equals(tokens.get(i + j).token)) {
+                                buffer.add(buffer.size() + s, tokens.get(i + j ));
+                                j++;
+                            }
+                            buffer.add(buffer.size() + s, new Token(";", TokenType.Splitter, tokens.get(i + j).line));
+                            buffer.add(buffer.size() + s, new Token("}", TokenType.Bracket, tokens.get(i + j).line));
+                        }
+                        i += j;
                     }
                     case "}" -> {
                         if (shift.size() > 0) s += shift.remove(shift.size() - 1);
@@ -589,6 +639,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                         tree.generateOpcode(varName, varType, output, s);
                         output.add(output.size() + s, "if " +  tree.token.token);
                     }
+                    case "else" -> output.set(output.size() + s - 1, "else");
                     case "kill" -> {
                         String var = "num_" + Double.doubleToLongBits(Double.parseDouble(line.get(j + 1).token));
                         output.add(output.size() + s, "var " + var);
@@ -643,7 +694,7 @@ public class AetherTSL implements Compiler<TSCode[]> {
                     }
                 }
                 case "set" -> {
-                    if (levelEnter != -1 && (sgm[1].startsWith("num_") || sgm[1].startsWith("vec2_") || sgm[1].startsWith("vec3_"))) {
+                    if (levelEnter != -1 && (sgm[1].startsWith("num_") || sgm[1].startsWith("vec2_num") || sgm[1].startsWith("vec3_num"))) {
                         for (int j = 0; j < varName.size(); j++) {
                             if (varName.get(j).equals(sgm[1])) {
                                 if (varFI.get(j) + 1 != i) {

@@ -6,7 +6,7 @@
 
     <groupId>ru.alexander1248</groupId>
     <artifactId>compilers</artifactId>
-    <version>0.7.5</version>
+    <version>0.7.7</version>
 
 
     <dependencies>
